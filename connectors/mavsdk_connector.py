@@ -1,0 +1,18 @@
+from ..core.connector import BaseConnector
+
+class MavsdkConnector(BaseConnector):
+    """
+    Placeholder for MAVSDK-based connector.
+    Recommended reference async backend for future expansion.
+    """
+    def connect(self):
+        raise NotImplementedError("MavsdkConnector not implemented in V1.0")
+
+    def send_command(self, command: int, **params):
+        pass
+
+    def set_mode(self, mode_name: str):
+        pass
+
+    def close(self):
+        pass
