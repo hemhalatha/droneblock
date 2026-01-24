@@ -1,5 +1,6 @@
 import json
 import time
+from typing import List, Dict, Any
 from ..core.events import EventEmitter
 from ..core.state import DroneState
 from ..core.logger import get_logger
@@ -7,40 +8,66 @@ from ..core.logger import get_logger
 log = get_logger("replay.player")
 
 class Player:
+    """Deterministic replay engine for offline telemetry analysis.
+
+    Injects recorded events into a simulated vehicle environment (state and bus)
+    at the original timing intervals. This is used to verify flight logic, 
+    safety rules, and mission execution without live hardware.
+
+    Attributes:
+        filename (str): Path to the recorded JSON trace file.
+        events (EventEmitter): Simulated event bus for replay.
+        state (DroneState): Simulated vehicle state synchronized with replayed data.
+        trace (List[Dict[str, Any]]): Loaded event data.
     """
-    Deterministic replay engine for offline trace analysis.
-    
-    Injects recorded events into a fresh event bus at the correct
-    timing intervals. Disables live connectors for pure logic replay.
-    """
-    def __init__(self, filename: str):
+
+    def __init__(self, filename: str) -> None:
+        """Initializes the player.
+
+        Args:
+            filename: Path to a valid DroneBlock trace file.
+        """
         self.filename = filename
         self.events = EventEmitter()
         self.state = DroneState()
-        self.trace = []
+        self.trace: List[Dict[str, Any]] = []
 
-    def load(self):
-        log.info(f"Loading trace from {self.filename}...")
+    def load(self) -> None:
+        """Loads and parses the trace file from disk.
+
+        Raises:
+            FileNotFoundError: If the trace file does not exist.
+            json.JSONDecodeError: If the file is not valid JSON.
+        """
+        log.info(f"Loading flight trace: '{self.filename}'")
         with open(self.filename, 'r') as f:
             self.trace = json.load(f)
-        log.info(f"Loaded {len(self.trace)} events.")
+        log.info(f"Successfully loaded {len(self.trace)} entries.")
 
-    def play(self, speedup: float = 1.0):
+    def play(self, speedup: float = 1.0) -> None:
+        """Executes the replay session.
+
+        Args:
+            speedup: Factor by which to accelerate playback (e.g., 2.0 for double speed).
+        """
         if not self.trace:
             self.load()
 
-        log.info(f"Starting replay at {speedup}x speed...")
-        start_time = time.monotonic()
+        log.info(f"Starting deterministic replay at {speedup}x speed.")
+        start_real_time = time.monotonic()
         
         for entry in self.trace:
-            target_time = entry["time"] / speedup
-            while (time.monotonic() - start_time) < target_time:
+            # Calculate when this event should fire in 'accelerated' time
+            target_replay_time = entry["time"] / speedup
+            
+            # Precise wait loop
+            while (time.monotonic() - start_real_time) < target_replay_time:
                 time.sleep(0.001)
             
-            # Inject event into the bus
-            # Note: For dataclass topics, we'd ideally reconstruct the objects
-            # For V1, the listeners should be aware they might get dicts if replaying
-            log.trace(f"Injecting @ {entry['time']:.2f}s: {entry['event']}")
+            # Emit the event exactly as it was recorded
+            # Note: Consumers of these events must handle dictionary payloads 
+            # if they expect dataclasses, as JSON serialization is lossy regarding types.
+            log.trace(f"Injecting event '{entry['event']}' at T+{entry['time']:.3f}s")
             self.events.emit(entry["event"], entry["payload"])
 
-        log.info("Replay finished.")
+        log.info("Replay sequence completed successfully.")

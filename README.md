@@ -21,8 +21,8 @@
 git clone https://github.com/user/droneblock.git
 cd droneblock
 
-# Install dependencies
-pip install pymavlink
+# Install in editable mode (recommended for developers)
+pip install -e .
 ```
 
 ---
@@ -30,13 +30,12 @@ pip install pymavlink
 ## Quick Start
 
 ```python
-from droneblock.core.drone import Drone
-from droneblock.actions.common import Arm, Takeoff, Land
-from droneblock.mission.executor import Mission
+from droneblock import Drone, Arm, Takeoff, Land, Mission
 from droneblock.safety.rules import SafetyRule, SafetyManager
 
 # 1. Connect via Factory (Recommended)
-drone = Drone.connect("udp://:14540")
+# The library automatically chooses Pymavlink for 'udp:' URLs
+drone = Drone.connect("udp:127.0.0.1:14540")
 
 # 2. Define Safety Rules (Priority 10 = High)
 safety = SafetyManager(drone)
@@ -49,7 +48,7 @@ safety.add_rule(SafetyRule(
 # 3. Create and Execute Mission with Action Timeouts
 mission = Mission([
     Arm(),
-    Takeoff(10, timeout=30.0), # Fail if takeoff takes > 30s
+    Takeoff(altitude=10, timeout=30.0), # Fail if takeoff takes > 30s
     Land()
 ])
 
@@ -58,22 +57,21 @@ try:
 except Exception as e:
     print(f"Mission failed: {e}")
 finally:
-    drone.close() # Clean shutdown
+    drone.close() # Graceful shutdown
 ```
 
 ---
 
 ## Advanced: Dependency Injection
 
-For better testability, you can inject a custom connector directly into the `Drone` constructor:
+For custom testing or backend control, you can inject a connector directly:
 
 ```python
-from droneblock.core.drone import Drone
+from droneblock import Drone, EventEmitter
 from droneblock.connectors.pymavlink_connector import PymavlinkConnector
-from droneblock.core.events import EventEmitter
 
 events = EventEmitter()
-connector = PymavlinkConnector("udp://:14540", events)
+connector = PymavlinkConnector("udp:127.0.0.1:14540", events)
 connector.connect()
 
 drone = Drone(connector)
@@ -91,22 +89,23 @@ To run the full demonstration in simulation:
    ```
 2. **Run the demo**:
    ```bash
-   python -m droneblock.examples.sitl_demo
+   # Run the provided demo script directly
+   python examples/sitl_demo.py
    ```
 
 ---
 
 ## Safety Rules Guide
 
-Safety rules in `droneblock` evaluate continuously against live telemetry topics.
+Safety rules in `droneblock` evaluate continuously against live telemetry events.
 
-### How it works:
-- **Priority**: Higher integer values are evaluated first.
-- **Deterministic**: The first high-priority trigger in a tick wins, aborting the current mission action.
-- **Context-Aware**: Rules have access to the full `DroneState` (GPS, Attitude, Battery, Status).
+### Features:
+- **Priority-Driven**: Higher integer values are evaluated first.
+- **Deterministic**: Triggers win immediately, aborting the current mission task safely.
+- **State-Aware**: Rules have access to normalized `DroneState` (GPS, Attitude, Battery).
 
 ```python
-# External Geofence Rule (Priority 15)
+# Geofence Rule (Altitude limit)
 safety.add_rule(SafetyRule(
     condition=lambda s: s.vehicle_gps_position.alt_rel > 50,
     action=Land(),
@@ -118,25 +117,29 @@ safety.add_rule(SafetyRule(
 
 ## Replay & Trace Guide
 
-The **Recorder** snapshots uORB topics and action triggers with monotonic timestamps.
+The **Recorder** snapshots telemetry events and action lifecycle states with precise timestamps.
 
-### Recording:
+### Recording a Flight:
 ```python
 from droneblock.replay.recorder import Recorder
 rec = Recorder(drone)
 rec.start()
+
 # ... mission logic ...
-rec.stop("my_flight.json")
+
+rec.stop("flight_logs/mission_01.json")
 ```
 
-### Playing Back:
+### Offline Playback:
 ```python
 from droneblock.replay.player import Player
-player = Player("my_flight.json")
-# Optional: Enable TRACE logs to see injection timing
-from droneblock.core import logger
-logger.set_level(logger.TRACE_LEVEL)
-player.play(speedup=2.0) # Watch at 2x speed
+from droneblock.core.logger import set_level, TRACE_LEVEL
+
+# Enable high-resolution trace logs
+set_level(TRACE_LEVEL)
+
+player = Player("flight_logs/mission_01.json")
+player.play(speedup=2.0) # Replay at 2x speed
 ```
 
 ---

@@ -10,9 +10,8 @@ This script demonstrates a full end-to-end workflow:
 """
 
 import time
-from droneblock.core.drone import Drone
-from droneblock.actions.common import Arm, Takeoff, Goto, Land
-from droneblock.mission.executor import Mission
+from droneblock import Drone, Arm, Takeoff, Goto, Land, Mission
+# Note: Replay and Safety modules remain in their submodules but can be imported cleanly
 from droneblock.safety.rules import SafetyRule, SafetyManager
 from droneblock.replay.recorder import Recorder
 
