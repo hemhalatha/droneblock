@@ -1,65 +1,72 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .events import EventEmitter
 
 class BaseConnector(ABC):
-    """Abstract interface for MAVLink backends (pymavlink, DroneKit, MAVSDK).
+    """Abstract interface for vehicle communication backends.
 
-    Connectors are responsible for low-level communication with the autopilot.
-    They emit raw messages via the event bus and execute basic commands.
+    Connectors translate high-level commands into backend-specific protocols
+    (e.g., MAVLink via pymavlink or MAVSDK) and emit raw telemetry data 
+    through the shared event bus.
 
     Attributes:
-        url (str): Connection string (e.g., 'udp://:14540').
-        events (EventEmitter): Shared event bus for message distribution.
+        url (str): The connection endpoint (e.g., 'udp:127.0.0.1:14550').
+        events (EventEmitter): The event bus for distributing received messages.
     """
-    def __init__(self, connection_url: str, events):
-        """Initializes the connector.
+
+    def __init__(self, connection_url: str, events: 'EventEmitter') -> None:
+        """Initializes the connector with connection parameters.
 
         Args:
-            connection_url: The URL to connect to.
-            events: The event emitter instance.
+            connection_url: String identifying the serial or network port.
+            events: Shared EventEmitter instance for the vehicle.
         """
         self.url = connection_url
         self.events = events
 
     @abstractmethod
-    def connect(self):
-        """Establishes the connection and starts the receiver loop.
+    def connect(self) -> None:
+        """Establishes the hardware or network connection.
 
+        Internal state should transition to connected after successful execution.
+        
         Raises:
-            ConnectionError: If the connection cannot be established.
+            ConnectionError: If the backend fails to initialize or connect.
         """
         pass
 
     @abstractmethod
-    def send_command(self, command: int, **params):
-        """Sends a raw MAVLink command to the drone.
+    def send_command(self, command: int, **params: float) -> None:
+        """Dispatches a low-level command to the vehicle.
 
         Args:
-            command: MAV_CMD identifier.
-            **params: Parameters for the MAVLink command (p1 to p7).
+            command: The integer identifier for the command (e.g., MAV_CMD).
+            **params: Parameters for the command, typically named p1 through p7.
         """
         pass
 
     @abstractmethod
-    def arm(self):
-        """Arms the drone's motors."""
+    def arm(self) -> None:
+        """Requests the vehicle to arm its motors."""
         pass
 
     @abstractmethod
-    def disarm(self):
-        """Disarms the drone's motors."""
+    def disarm(self) -> None:
+        """Requests the vehicle to disarm its motors immediately."""
         pass
 
     @abstractmethod
-    def set_mode(self, mode_name: str):
-        """Sets the flight mode of the drone.
+    def set_mode(self, mode_name: str) -> None:
+        """Instructs the vehicle to transition to a new flight mode.
 
         Args:
-            mode_name: The name of the mode to set (e.g., 'GUIDED', 'AUTO').
+            mode_name: The backend-specific mode string (e.g., 'GUIDED').
         """
         pass
 
     @abstractmethod
-    def close(self):
-        """Shuts down the connection and stops all threads."""
+    def close(self) -> None:
+        """Terminates the connection and performs cleanup of resources."""
         pass

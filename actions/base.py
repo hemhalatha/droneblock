@@ -1,68 +1,75 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from ..core.logger import get_logger
+
+if TYPE_CHECKING:
+    from ..core.drone import Drone
 
 log = get_logger("actions.base")
 
 class Action(ABC):
-    """Base class for droneblock actions.
+    """Abstract base class for all DroneBlock actions.
 
-    The action lifecycle follows: start -> tick -> complete? -> abort.
-    Actions can define an optional timeout to prevent infinite execution.
+    The action lifecycle is managed by a MissionExecutor and consists of:
+    1. start(): Initialization logic.
+    2. tick(): Periodic execution logic.
+    3. complete(): Termination check.
+    4. abort(): Cleanup if interrupted.
 
     Attributes:
-        drone: The drone instance this action is bound to.
-        timeout (Optional[float]): Maximum execution time in seconds.
-        aborted (bool): Whether the action was interrupted.
+        drone (Optional[Drone]): The drone instance this action is bound to.
+        timeout (Optional[float]): Maximum allowed execution time in seconds.
+        aborted (bool): Flag indicating if the action was cancelled.
     """
-    def __init__(self, timeout: Optional[float] = None):
+
+    def __init__(self, timeout: Optional[float] = None) -> None:
         """Initializes the action.
 
         Args:
-            timeout: Maximum execution time in seconds. Must be > 0 if provided.
+            timeout: Maximum execution time in seconds. Must be > 0.
 
         Raises:
-            ValueError: If timeout is provided and is not positive.
+            ValueError: If timeout is non-positive.
         """
         if timeout is not None and timeout <= 0:
             raise ValueError("Action timeout must be a positive float.")
             
-        self.drone = None
-        self._started = False
-        self.aborted = False
-        self.timeout = timeout
+        self.drone: Optional['Drone'] = None
+        self._started: bool = False
+        self.aborted: bool = False
+        self.timeout: Optional[float] = timeout
 
-    def bind(self, drone):
-        """Binds the action to a specific drone instance.
+    def bind(self, drone: 'Drone') -> None:
+        """Associates the action with a drone instance.
 
         Args:
-            drone: The Drone instance to bind to.
+            drone: The Drone instance to control.
         """
         self.drone = drone
 
     @abstractmethod
-    def start(self):
-        """Called once when the action begins."""
+    def start(self) -> None:
+        """Logic to execute when the action starts."""
         pass
 
     @abstractmethod
-    def tick(self):
-        """Called periodically (e.g., 10Hz) during execution."""
+    def tick(self) -> None:
+        """Logic to execute periodically during the action's lifecycle."""
         pass
 
     @abstractmethod
     def complete(self) -> bool:
-        """Determines if the action has finished.
+        """Condition that determines if the action has finished successfully.
 
         Returns:
-            True if the action is complete, False otherwise.
+            True if target reached or condition met, False otherwise.
         """
         return True
 
-    def abort(self):
-        """Called if the action is interrupted by safety or the user."""
+    def abort(self) -> None:
+        """Interrupts the action and performs any necessary cleanup."""
         self.aborted = True
-        log.warning(f"{self.__class__.__name__} aborted.")
+        log.warning(f"Action '{self.__class__.__name__}' aborted.")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__class__.__name__
