@@ -7,7 +7,7 @@ setup(
     description="A professional, event-driven drone control framework.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/droneblock", 
+    url="https://github.com/hemhalatha/droneblock", 
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
