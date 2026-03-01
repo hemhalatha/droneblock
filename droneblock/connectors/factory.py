@@ -41,13 +41,9 @@ class ConnectorFactory:
             return PymavlinkConnector(url, event_bus)
         if url.startswith("dronekit:"):
             # Ensure it conforms to type system while abstract methods exist
-            return cast(
-                "BaseConnector", DroneKitConnector(url, event_bus)
-            )
+            return cast("BaseConnector", DroneKitConnector(url, event_bus))
         if url.startswith("mavsdk:"):
-            return cast(
-                "BaseConnector", MavsdkConnector(url, event_bus)
-            )
+            return cast("BaseConnector", MavsdkConnector(url, event_bus))
 
         raise DroneConnectionError(
             f"Unsupported connection scheme: '{url}'. "
