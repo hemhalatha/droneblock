@@ -3,6 +3,7 @@ DroneBlock Replay Recorder Module.
 
 Engine for recording flight traces for post-flight analysis.
 """
+
 import json
 import time
 from typing import Any, List, Dict, Optional, TYPE_CHECKING
@@ -14,11 +15,12 @@ if TYPE_CHECKING:
 
 log = get_logger("replay.recorder")
 
+
 class Recorder:
     """Telemetry and event recording engine for post-flight analysis.
 
-    Subscribes to designated telemetry topics on the vehicle's event bus 
-    and snapshots the data with high-resolution monotonic timestamps. 
+    Subscribes to designated telemetry topics on the vehicle's event bus
+    and snapshots the data with high-resolution monotonic timestamps.
     The resulting trace can be used for debugging or deterministic replay.
 
     Attributes:
@@ -27,7 +29,7 @@ class Recorder:
         is_recording (bool): Active recording status flag.
     """
 
-    def __init__(self, drone: 'Drone') -> None:
+    def __init__(self, drone: "Drone") -> None:
         """Initializes the recorder for a specific drone.
 
         Args:
@@ -50,12 +52,12 @@ class Recorder:
         self._start_time = time.monotonic()
 
         default_topics = [
-            "vehicle_gps_position", 
-            "vehicle_attitude", 
-            "battery_status", 
+            "vehicle_gps_position",
+            "vehicle_attitude",
+            "battery_status",
             "vehicle_status",
             "action.started",
-            "action.timeout"
+            "action.timeout",
         ]
         active_topics = topics or default_topics
 
@@ -63,7 +65,7 @@ class Recorder:
             # We use a default argument t=topic to capture the loop variable correctly
             self.drone.on(topic, lambda data, t=topic: self._record_event(t, data))
 
-        log.info("Recorder active for topics: %s", ', '.join(active_topics))
+        log.info("Recorder active for topics: %s", ", ".join(active_topics))
 
     def _record_event(self, name: str, data: Any) -> None:
         """Snapshots a single event and appends it to the trace.
@@ -80,14 +82,12 @@ class Recorder:
         # Serialize dataclasses to dictionaries for JSON compatibility
         if is_dataclass(data):
             payload = asdict(data)
-        else:
+        elif isinstance(data, (int, float, str, bool, type(None), list, dict)):
             payload = data
+        else:
+            payload = str(data)
 
-        self.trace.append({
-            "time": timestamp,
-            "event": name,
-            "payload": payload
-        })
+        self.trace.append({"time": timestamp, "event": name, "payload": payload})
 
     def stop(self, filename: str = "flight_trace.json") -> None:
         """Stops the recording session and persists the trace to disk.
@@ -96,10 +96,14 @@ class Recorder:
             filename: The target JSON file path.
         """
         self.is_recording = False
-        log.info("Recording stopped. Persisting %d entries to '%s'.", len(self.trace), filename)
+        log.info(
+            "Recording stopped. Persisting %d entries to '%s'.",
+            len(self.trace),
+            filename,
+        )
 
         try:
-            with open(filename, 'w', encoding='utf-8') as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 json.dump(self.trace, f, indent=2)
             log.info("Trace file saved successfully.")
         except Exception as e:  # pylint: disable=broad-exception-caught

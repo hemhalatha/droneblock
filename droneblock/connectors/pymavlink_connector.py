@@ -3,6 +3,7 @@ DroneBlock PyMavlink Connector Module.
 
 Provides synchronous to asynchronous message bridging via PyMavlink.
 """
+
 import threading
 import time
 from typing import Optional, Any, TYPE_CHECKING
@@ -16,14 +17,15 @@ if TYPE_CHECKING:
 
 log = get_logger("connectors.pymavlink")
 
+
 class PymavlinkConnector(BaseConnector):
     """Pymavlink-based backend for DroneBlock.
 
-    Adapts the synchronous pymavlink library to DroneBlock's event-driven 
+    Adapts the synchronous pymavlink library to DroneBlock's event-driven
     architecture using a dedicated background receiver thread.
     """
 
-    def __init__(self, connection_url: str, events: 'EventEmitter') -> None:
+    def __init__(self, connection_url: str, events: "EventEmitter") -> None:
         """Initializes the Pymavlink connector.
 
         Args:
@@ -57,17 +59,24 @@ class PymavlinkConnector(BaseConnector):
         self.target_system = self.mav.target_system
         self.target_component = self.mav.target_component
 
+        # Request continuous telemetry streams (e.g. GPS, Attitude)
+        self.mav.mav.request_data_stream_send(
+            self.target_system,
+            self.target_component,
+            mavutil.mavlink.MAV_DATA_STREAM_ALL,
+            10,  # rate in Hz
+            1,  # start logging
+        )
+
         self._running = True
         self._thread = threading.Thread(
-            target=self._recv_loop,
-            daemon=True,
-            name="PymavlinkRecvThread"
+            target=self._recv_loop, daemon=True, name="PymavlinkRecvThread"
         )
         self._thread.start()
         log.info(
             "MAVLink connected. System ID: %s, Component ID: %s",
             self.target_system,
-            self.target_component
+            self.target_component,
         )
 
     def _recv_loop(self) -> None:
@@ -91,14 +100,10 @@ class PymavlinkConnector(BaseConnector):
             **params: Keyword parameters p1-p7 (e.g., p7=10 for altitude).
         """
         # Map p1-p7 keyword args to the positional arguments of command_long_send
-        p = [params.get(f'p{i}', 0.0) for i in range(1, 8)]
+        p = [params.get(f"p{i}", 0.0) for i in range(1, 8)]
 
         self.mav.mav.command_long_send(
-            self.target_system,
-            self.target_component,
-            command,
-            0,  # confirmation
-            *p
+            self.target_system, self.target_component, command, 0, *p  # confirmation
         )
 
     def arm(self) -> None:
@@ -109,6 +114,32 @@ class PymavlinkConnector(BaseConnector):
         """Sends a command to disarm the vehicle's motors."""
         self.send_command(mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, p1=0)
 
+    def goto(self, lat: float, lon: float, alt: float) -> None:
+        """Commands the vehicle to fly to a specific GPS coordinate and altitude."""
+        # Convert lat/lon to integers (deg * 1e7) as expected by set_position_target_global_int
+        lat_int = int(lat * 1e7)
+        lon_int = int(lon * 1e7)
+        # Coordinate frame 6 corresponds to MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+        # Type mask 3576 means ignore velocity, acceleration, and yaw
+        self.mav.mav.set_position_target_global_int_send(
+            0,  # time_boot_ms (not used)
+            self.target_system,
+            self.target_component,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+            0b110111111000,  # type_mask (only positions enabled)
+            lat_int,
+            lon_int,
+            alt,
+            0,
+            0,
+            0,  # x, y, z velocity (ignored)
+            0,
+            0,
+            0,  # x, y, z acceleration (ignored)
+            0,
+            0,  # yaw, yaw_rate (ignored)
+        )
+
     def set_mode(self, mode_name: str) -> None:
         """Changes the flight mode of the vehicle.
 
@@ -116,7 +147,9 @@ class PymavlinkConnector(BaseConnector):
             mode_name: The target mode name (e.g., 'GUIDED').
         """
         if mode_name not in self.mav.mode_mapping():
-            log.warning("Requested mode '%s' is not supported by the vehicle.", mode_name)
+            log.warning(
+                "Requested mode '%s' is not supported by the vehicle.", mode_name
+            )
             return
 
         mode_id = self.mav.mode_mapping()[mode_name]

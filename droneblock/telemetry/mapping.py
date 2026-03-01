@@ -3,12 +3,19 @@ DroneBlock Telemetry Mapping Module.
 
 Responsible for translating raw MAVLink data into standard DroneBlock state.
 """
+
 from typing import Any, TYPE_CHECKING
-from ..core.state import VehicleGpsPosition, VehicleAttitude, BatteryStatus, VehicleStatus
+from ..core.state import (
+    VehicleGpsPosition,
+    VehicleAttitude,
+    BatteryStatus,
+    VehicleStatus,
+)
 
 if TYPE_CHECKING:
     from ..core.events import EventEmitter
     from ..core.state import DroneState
+
 
 class TelemetryMapper:
     """Translation engine for normalizing raw MAVLink data into the DroneBlock state.
@@ -18,7 +25,7 @@ class TelemetryMapper:
     DroneState. It also re-emits these normalized topics on the event bus.
     """
 
-    def __init__(self, events: 'EventEmitter', state: 'DroneState') -> None:
+    def __init__(self, events: "EventEmitter", state: "DroneState") -> None:
         """Initializes the mapper.
 
         Args:
@@ -45,26 +52,21 @@ class TelemetryMapper:
             alt_rel=msg.relative_alt / 1000.0,
             vel_n_m_s=msg.vx / 100.0,
             vel_e_m_s=msg.vy / 100.0,
-            vel_d_m_s=msg.vz / 100.0
+            vel_d_m_s=msg.vz / 100.0,
         )
         self.state.update_topic("vehicle_gps_position", topic)
         self.events.emit("vehicle_gps_position", topic)
 
     def _handle_attitude(self, msg: Any) -> None:
         """Normalizes vehicle attitude (Euler angles)."""
-        topic = VehicleAttitude(
-            roll=msg.roll,
-            pitch=msg.pitch,
-            yaw=msg.yaw
-        )
+        topic = VehicleAttitude(roll=msg.roll, pitch=msg.pitch, yaw=msg.yaw)
         self.state.update_topic("vehicle_attitude", topic)
         self.events.emit("vehicle_attitude", topic)
 
     def _handle_battery(self, msg: Any) -> None:
         """Normalizes battery voltage and remaining energy."""
         topic = BatteryStatus(
-            voltage_v=msg.voltage_battery / 1000.0,
-            remaining_pct=msg.battery_remaining
+            voltage_v=msg.voltage_battery / 1000.0, remaining_pct=msg.battery_remaining
         )
         self.state.update_topic("battery_status", topic)
         self.events.emit("battery_status", topic)
@@ -72,10 +74,10 @@ class TelemetryMapper:
     def _handle_heartbeat(self, msg: Any) -> None:
         """Normalizes basic vehicle status and connectivity data."""
         # Simple bitmask check for arming status
-        armed = bool(msg.base_mode & 128) # MAV_MODE_FLAG_SAFETY_ARMED
+        armed = bool(msg.base_mode & 128)  # MAV_MODE_FLAG_SAFETY_ARMED
         topic = VehicleStatus(
             armed=armed,
-            nav_state="N/A" # Reserved for future mode-to-nav-state mapping
+            nav_state="N/A",  # Reserved for future mode-to-nav-state mapping
         )
         self.state.update_topic("vehicle_status", topic)
         self.events.emit("vehicle_status", topic)

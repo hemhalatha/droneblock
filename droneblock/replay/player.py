@@ -3,6 +3,7 @@ DroneBlock Replay Player Module.
 
 Engine for deterministic playback of recorded flight traces.
 """
+
 import json
 import time
 from typing import List, Dict, Any
@@ -12,11 +13,12 @@ from ..core.logger import get_logger
 
 log = get_logger("replay.player")
 
+
 class Player:
     """Deterministic replay engine for offline telemetry analysis.
 
     Injects recorded events into a simulated vehicle environment (state and bus)
-    at the original timing intervals. This is used to verify flight logic, 
+    at the original timing intervals. This is used to verify flight logic,
     safety rules, and mission execution without live hardware.
 
     Attributes:
@@ -44,8 +46,8 @@ class Player:
             FileNotFoundError: If the trace file does not exist.
             json.JSONDecodeError: If the file is not valid JSON.
         """
-        log.info("Loading flight trace: '%s'", self.filename)
-        with open(self.filename, 'r', encoding='utf-8') as f:
+        log.info("\nLoading flight trace: '%s'", self.filename)
+        with open(self.filename, "r", encoding="utf-8") as f:
             self.trace = json.load(f)
         log.info("Successfully loaded %d entries.", len(self.trace))
 
@@ -58,7 +60,7 @@ class Player:
         if not self.trace:
             self.load()
 
-        log.info("Starting deterministic replay at %sx speed.", speedup)
+        log.info("\nStarting deterministic replay at %sx speed.", speedup)
         start_real_time = time.monotonic()
 
         for entry in self.trace:
@@ -72,7 +74,7 @@ class Player:
             # Emit the event exactly as it was recorded
             # Note: Consumers of these events must handle dictionary payloads
             # if they expect dataclasses, as JSON serialization is lossy regarding types.
-            log.trace("Injecting event '%s' at T+%.3fs", entry['event'], entry['time'])
+            log.trace("Injecting event '%s' at T+%.3fs", entry["event"], entry["time"])
             self.events.emit(entry["event"], entry["payload"])
 
-        log.info("Replay sequence completed successfully.")
+        log.info("\nReplay sequence completed successfully.")

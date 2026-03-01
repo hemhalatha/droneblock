@@ -3,17 +3,19 @@ DroneBlock Base Connector Module.
 
 Defines the abstract interface for all vehicle communication backends.
 """
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .events import EventEmitter
 
+
 class BaseConnector(ABC):
     """Abstract interface for vehicle communication backends.
 
     Connectors translate high-level commands into backend-specific protocols
-    (e.g., MAVLink via pymavlink or MAVSDK) and emit raw telemetry data 
+    (e.g., MAVLink via pymavlink or MAVSDK) and emit raw telemetry data
     through the shared event bus.
 
     Attributes:
@@ -21,7 +23,7 @@ class BaseConnector(ABC):
         events (EventEmitter): The event bus for distributing received messages.
     """
 
-    def __init__(self, connection_url: str, events: 'EventEmitter') -> None:
+    def __init__(self, connection_url: str, events: "EventEmitter") -> None:
         """Initializes the connector with connection parameters.
 
         Args:
@@ -36,7 +38,7 @@ class BaseConnector(ABC):
         """Establishes the hardware or network connection.
 
         Internal state should transition to connected after successful execution.
-        
+
         Raises:
             ConnectionError: If the backend fails to initialize or connect.
         """
@@ -57,6 +59,16 @@ class BaseConnector(ABC):
     @abstractmethod
     def disarm(self) -> None:
         """Requests the vehicle to disarm its motors immediately."""
+
+    @abstractmethod
+    def goto(self, lat: float, lon: float, alt: float) -> None:
+        """Commands the vehicle to fly to a specific GPS coordinate and altitude.
+
+        Args:
+            lat: Latitude in degrees.
+            lon: Longitude in degrees.
+            alt: Target altitude.
+        """
 
     @abstractmethod
     def set_mode(self, mode_name: str) -> None:

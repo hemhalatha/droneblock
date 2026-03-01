@@ -3,6 +3,7 @@ DroneBlock Base Action Module.
 
 Provides abstract foundation for all flight behaviors.
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING
 from ..core.logger import get_logger
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
     from ..core.drone import Drone
 
 log = get_logger("actions.base")
+
 
 class Action(ABC):
     """Abstract base class for all DroneBlock actions.
@@ -39,12 +41,12 @@ class Action(ABC):
         if timeout is not None and timeout <= 0:
             raise ValueError("Action timeout must be a positive float.")
 
-        self.drone: Optional['Drone'] = None
+        self.drone: Optional["Drone"] = None
         self._started: bool = False
         self.aborted: bool = False
         self.timeout: Optional[float] = timeout
 
-    def bind(self, drone: 'Drone') -> None:
+    def bind(self, drone: "Drone") -> None:
         """Associates the action with a drone instance.
 
         Args:

@@ -3,6 +3,7 @@ DroneBlock Safety Rules Module.
 
 Contains rules and managers for autonomous safety monitoring.
 """
+
 from typing import Callable, List, Any, TYPE_CHECKING
 from ..actions.base import Action
 from ..core.logger import get_logger
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
 log = get_logger("safety")
 
+
 class SafetyRule:
     """A context-aware rule that triggers a safety action based on vehicle state.
 
@@ -22,8 +24,12 @@ class SafetyRule:
         priority (int): Execution priority (higher values are checked first).
         triggered (bool): Internal flag to prevent multiple activations of the same rule.
     """
+
     def __init__(
-        self, condition: Callable[['DroneState'], bool], action: Action, priority: int = 0
+        self,
+        condition: Callable[["DroneState"], bool],
+        action: Action,
+        priority: int = 0,
     ) -> None:
         """Initializes a safety rule.
 
@@ -37,18 +43,20 @@ class SafetyRule:
         self.priority = priority
         self.triggered: bool = False
 
+
 class SafetyManager:
     """Orchestrator for vehicle safety constraints.
 
     Continuously monitors telemetry events and evaluates registered SafetyRules
-    against the current vehicle state. High-priority violations will 
+    against the current vehicle state. High-priority violations will
     immediately interrupt the current mission or action.
 
     Attributes:
         drone (Drone): The drone instance to monitor.
         rules (List[SafetyRule]): Sorted list of safety constraints.
     """
-    def __init__(self, drone: 'Drone') -> None:
+
+    def __init__(self, drone: "Drone") -> None:
         """Initializes the SafetyManager.
 
         Args:
@@ -87,7 +95,7 @@ class SafetyManager:
                 log.warning(
                     "SAFETY VIOLATION DETECTED (Priority %d): %s",
                     rule.priority,
-                    rule.action
+                    rule.action,
                 )
                 rule.triggered = True
 
@@ -95,7 +103,7 @@ class SafetyManager:
                 if self.drone.current_action:
                     log.info(
                         "Aborting current action '%s' due to safety constraint.",
-                        self.drone.current_action
+                        self.drone.current_action,
                     )
                     self.drone.current_action.abort()
 

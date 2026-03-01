@@ -3,6 +3,7 @@ DroneBlock Core Drone Interface Module.
 
 Serves as the primary entry point for controlling a vehicle.
 """
+
 from typing import Any, Optional, Union, TYPE_CHECKING
 import threading
 
@@ -20,11 +21,12 @@ if TYPE_CHECKING:
 
 log = get_logger("core.drone")
 
+
 class Drone:
     """Standard interface for drone control in the DroneBlock ecosystem.
 
     This class serves as the primary entry point for developers, coordinating
-    hardware communication (via Connectors), mission execution, and telemetry 
+    hardware communication (via Connectors), mission execution, and telemetry
     processing.
 
     Attributes:
@@ -50,7 +52,7 @@ class Drone:
         self.current_action: Optional[Any] = None
 
     @classmethod
-    def connect(cls, url: str) -> 'Drone':
+    def connect(cls, url: str) -> "Drone":
         """Factory method to establish a connection to a vehicle.
 
         Args:
@@ -81,7 +83,7 @@ class Drone:
         self.events.on(topic, handler)
 
     def execute(
-        self, mission_or_action: Union['Mission', 'Action'], blocking: bool = True
+        self, mission_or_action: Union["Mission", "Action"], blocking: bool = True
     ) -> Optional[threading.Thread]:
         """Runs a task or a sequence of tasks on the vehicle.
 
@@ -94,6 +96,7 @@ class Drone:
         """
         # pylint: disable=import-outside-toplevel
         from ..mission.executor import MissionExecutor
+
         executor = MissionExecutor(self)
         return executor.run(mission_or_action, blocking=blocking)
 
