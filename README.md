@@ -71,7 +71,7 @@ To safely develop and test your drone logic, a **Software-In-The-Loop (SITL)** s
 - **SITL Simulator (*Optional*):** If you do not have hardware connected, install the [ArduPilot SITL](https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html) environment or deploy a pre-configured Docker container to simulate flight dynamics.
 - **Ground Control Station (*Optional*):** Applications such as [QGroundControl](http://qgroundcontrol.com/) or Mission Planner are recommended for visual tracking during simulation.
 
-Once configured, initiate the simulator. The connection port mapping varies based on the drone model and configuration; however, standard setups typically expose a TCP connection on port `5762` or UDP on `14550`.
+Once configured, initiate the simulator. The connection port mapping **varies based on your specific drone model, network configuration, and simulator software**. However, unmodified standard ArduPilot SITL setups typically default to exposing a TCP connection on port `5762` or a UDP broadcast on `14550` for external API control.
 
 ```bash
 # Example command to initialize an ArduPilot Copter SITL instance
