@@ -94,32 +94,42 @@ class MissionExecutor:
         )
 
         log.info("Executing sequence with %d actions.", len(actions))
-        for action in actions:
-            action.bind(self.drone)
-            self.drone.current_action = action
+        try:
+            for action in actions:
+                action.bind(self.drone)
+                self.drone.current_action = action
 
-            log.info("Starting action: %s", action)
-            self.drone.events.emit("action.started", action)
+                log.info("Starting action: %s", action)
+                self.drone.events.emit("action.started", action)
 
-            start_time = time.time()
-            action.start()
+                start_time = time.time()
+                try:
+                    action.start()
+                    self._wait_for_action(action, start_time)
+                except ActionTimeoutError:
+                    raise
+                except Exception as e:
+                    log.error(
+                        "Critical error during execution of '%s': %s",
+                        action,
+                        e,
+                        exc_info=True,
+                    )
+                    raise DroneblockError(
+                        f"Action '{action}' failed due to: {e}"
+                    ) from e
 
-            try:
-                self._wait_for_action(action, start_time)
-            except ActionTimeoutError:
-                raise
-            except Exception as e:
-                log.error(
-                    "Critical error during execution of '%s': %s",
-                    action,
-                    e,
-                    exc_info=True,
-                )
-                raise DroneblockError(f"Action '{action}' failed due to: {e}") from e
+                if action.aborted:
+                    log.warning(
+                        "Stopping mission because action '%s' was aborted.", action
+                    )
+                    return
 
-            log.info("Action '%s' completed successfully.", action)
+                log.info("Action '%s' completed successfully.", action)
 
-        self.drone.current_action = None
+        finally:
+            self.drone.current_action = None
+
         log.info("Mission execution sequence finished.")
 
     def _wait_for_action(self, action: Action, start_time: float) -> None:

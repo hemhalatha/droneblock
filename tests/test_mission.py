@@ -5,6 +5,7 @@ from droneblock.core.drone import Drone
 from droneblock.actions.base import Action
 from droneblock.core.exceptions import ActionTimeoutError, DroneblockError
 from droneblock.core.events import EventEmitter
+from droneblock.mission.executor import Mission
 from .conftest import MockConnector
 
 
@@ -54,6 +55,25 @@ class TestMissionExecutor(unittest.TestCase):
         elapsed = time.time() - start_time
         self.assertLess(elapsed, 0.5)  # Should have failed earlier
         self.assertTrue(action.aborted)
+        self.assertIsNone(self.drone.current_action)
+
+    def test_aborted_action_stops_mission(self):
+        """An aborted action must prevent later mission actions from starting."""
+
+        class AbortingAction(MockAction):
+            def tick(self):
+                self.abort()
+
+        interrupted_action = AbortingAction(duration=10)
+        following_action = MockAction(duration=0.1)
+
+        self.drone.execute(
+            Mission([interrupted_action, following_action]), blocking=True
+        )
+
+        self.assertTrue(interrupted_action.aborted)
+        self.assertFalse(following_action.start_called)
+        self.assertIsNone(self.drone.current_action)
 
     def test_events_emitted(self):
         """Test that action.started and action.timeout events are emitted."""
