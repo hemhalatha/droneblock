@@ -50,9 +50,9 @@ flowchart TD
     
     subgraph Connector Backend
         Action --> Factory[Connector Factory]
-        Factory --> Pylink[Pymavlink (implemented)]
-        Factory -. placeholder .-> DroneKit[DroneKit (not implemented)]
-        Factory -. placeholder .-> MAVSDK[MAVSDK (not implemented)]
+        Factory --> Pylink["Pymavlink (implemented)"]
+        Factory -. placeholder .-> DroneKit["DroneKit (not implemented)"]
+        Factory -. placeholder .-> MAVSDK["MAVSDK (not implemented)"]
     end
     
     Pylink <--> Vehicle[(ArduPilot / PX4)]
