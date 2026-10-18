@@ -50,12 +50,12 @@ flowchart TD
     
     subgraph Connector Backend
         Action --> Factory[Connector Factory]
-        Factory --> Pylink[Pymavlink]
-        Factory --> MAVSDK[MAVSDK]
+        Factory --> Pylink[Pymavlink (implemented)]
+        Factory -. placeholder .-> DroneKit[DroneKit (not implemented)]
+        Factory -. placeholder .-> MAVSDK[MAVSDK (not implemented)]
     end
     
     Pylink <--> Vehicle[(ArduPilot / PX4)]
-    MAVSDK <--> Vehicle
     
     Vehicle -- Telemetry --> Mapper[Telemetry Mapper]
     Mapper --> State
@@ -193,11 +193,11 @@ player.play(speedup=5.0)
 
 ### Connector Architecture
 
-DroneBlock leverages a scalable Factory Pattern to manage multiple backend MAVLink drivers. The framework automatically parses the connection string provided to `Drone.connect()` and instantiates the appropriate adapter:
+DroneBlock uses a connector factory to select how it communicates with a vehicle. The implemented connector is **Pymavlink**, which handles `tcp:`, `udp:`, and `serial:` connection strings for MAVLink-based ArduPilot and PX4 vehicles. The `dronekit:` and `mavsdk:` connectors are placeholders and are not currently usable:
 
-- `tcp:`, `udp:`, `serial:` -> **Pymavlink** (Highly optimized production backend)
-- `dronekit:` -> **DroneKit** (Hardware compatibility layer)
-- `mavsdk:` -> **MAVSDK** (High-throughput, asynchronous backend)
+- `tcp:`, `udp:`, `serial:` -> **Pymavlink** (implemented)
+- `dronekit:` -> **DroneKit** (placeholder; not implemented)
+- `mavsdk:` -> **MAVSDK** (placeholder; not implemented)
 
 ---
 
