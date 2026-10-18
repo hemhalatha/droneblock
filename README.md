@@ -82,19 +82,25 @@ sim_vehicle.py -v ArduCopter -f quad --map --console
 
 ## Installation
 
-You can install DroneBlock directly via `pip`. This deployment includes the necessary MAVLink drivers.
+Install the published package from PyPI with:
 
 ```bash
-pip install droneblock
+python -m pip install droneblock
 ```
 
-Alternatively, to build the framework from the source repository:
+To install the version in this repository instead:
 
 ```bash
 git clone https://github.com/hemhalatha/droneblock.git
 cd droneblock
-pip install -r requirements.txt
-python setup.py install
+python -m pip install .
+```
+
+For development, install it in editable mode and add the test dependency:
+
+```bash
+python -m pip install -e .
+python -m pip install pytest
 ```
 
 ---
